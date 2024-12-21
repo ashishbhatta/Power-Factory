@@ -1,0 +1,170 @@
+set Gen,Ter;
+object G,T,In,RMS;  
+int N, i, j, Bus_no, Gen_no; 
+double sp,t,i1,i2,time,speed,freq,angle;  
+
+!Input for Number of Bus and No of Generator in a Model
+Bus_no = 11;
+Gen_no = 7;
+
+ClearOutput();
+
+!Assigning Ka for each AVR                 
+AVR_Siwani:Ka = 5000; 
+AVR_Hewa:Ka = 5000; 
+AVR_Multiple:Ka = 5000; 
+AVR_Duhabi:Ka = 5000; 
+AVR_Katlaya:Ka = 5000; 
+!                              
+               
+!Creating set of Generators and Terminals
+Gen = AllRelevant('ElmSym');   
+Ter = AllRelevant('EkmTerm');
+
+
+!Creating Objects of Generator and Terminal
+!for accessing Bus Frequency and Rotor angle
+G = Gen.First();
+T = Ter.First();   
+
+
+!Running Initial Condition
+In =  GetCaseObject('ComInc');
+In.Execute();
+
+!Executing RMS Simulation
+ RMS = GetCaseObject('ComSim');
+ RMS.Execute();
+ 
+ !Load the Result File:
+ LoadResData(All_Calculations);
+ !1. This program Runs the RMS simulation and export result to csv File 
+ 
+ !Get Numer of rows  in Result
+ N=ResNval(All_Calculations,0); 
+ printf('The number of rows in result database is %d',N);
+
+!Defining Matrix to save speed and assigning all value to Zero
+speed_Mat.Init(N,Gen_no,0);
+angle_Mat.Init(N,Gen_no,0);  
+  
+ !No. of Column is equal to number of Generator
+ for (j=1;j<=Gen_no;j+=1){
+ !Number of rows is equal to number of rows in Result 
+  for (i=1;i<=N;i+=1){ 
+
+  !Writing time in 1st column of a matrix
+  GetResData(time,All_Calculations,i); 
+  printf('Time is %f',time); 
+  speed_Mat.Set(i,1,time);
+  angle_Mat.Set(i,1,time); 
+  
+  !Identify which column contain speed of generator
+  i1=ResIndex(All_Calculations,G,'s:xspeed');
+  i2=ResIndex(All_Calculations,G,'s:xphi');
+  
+  !Get the speed Data
+  GetResData(speed,All_Calculations,i,i1); 
+  printf('Speed is %f',speed);
+  
+  GetResData(angle,All_Calculations,i,i2); 
+  printf('Speed is %f',angle);
+  
+                           
+  !Saving Speed in a matrix name speed_Mat 
+  speed_Mat.Set(i,j+1,speed);
+  angle_Mat.Set(i,j+1,angle);
+  !printf('Speed of bus 1 at time %f is %f',t,i1); 
+  }
+ !Go to next generator of a set   
+ G = Gen.Next();  
+ } 
+  
+   
+   
+!Defining matrix to store Bus frequency   
+freq_Mat.Init(N,Bus_no,0);     
+  
+!Saving Bus Frequency to a Matrix
+ for (j=1;j<=Bus_no;j+=1){
+ !Outer Loop for Time 
+  for (i=1;i<=N-1;i+=1){ 
+ 
+ !i1=ResIndex(All_Calculations,i,i1); 
+  printf('i is %d',i);
+  GetResData(time,All_Calculations,i); 
+  printf('Time is %f',time); 
+  freq_Mat.Set(i,1,time); 
+ 
+  i1=ResIndex(All_Calculations,G,'m:fehz');
+  GetResData(freq,All_Calculations,i,i1); 
+  printf('frequency is %f',freq);
+  freq_Mat.Set(i,j+1,freq);
+  !printf('Frequency of bus 1 at time %f is %f',t,i1); 
+  }   
+ T = Ter.Next();  
+ }   
+
+ 
+!Exporting Bus frequency to a csv File
+fopen('C:\Users\Ashmita\Desktop\Assignment_2_frequency.csv','w',0);
+
+for(i=1;i<=N;i+=1)
+{  
+  for(j=1;j<=Bus_no;j+=1)
+  {
+  time = freq_Mat.Get(i,j);
+  if(j<Bus_no){ 
+     SetLineFeed(0);
+     fprintf(0,'%f,',time);
+  }
+  else
+  {
+    SetLineFeed(1);
+    fprintf(0,'%f',time);
+  }
+  !fprintf(0,','); 
+  }
+}                          
+fclose(0);   
+
+fopen('C:\Users\Ashmita\Desktop\Assignment_2_speed.csv','w',0);
+for(i=1;i<=N;i+=1)
+{  
+  for(j=1;j<=Gen_no;j+=1)
+  {
+  time = speed_Mat.Get(i,j);
+  if(j<Gen_no){ 
+     SetLineFeed(0);
+     fprintf(0,'%f,',time);
+  }
+  else
+  {
+    SetLineFeed(1);
+    fprintf(0,'%f',time);
+  }
+  !fprintf(0,','); 
+  }
+}                          
+fclose(0); 
+
+
+fopen('C:\Users\Ashmita\Desktop\Assignment_2_angle.csv','w',0);
+for(i=1;i<=N;i+=1)
+{  
+  for(j=1;j<=Gen_no;j+=1)
+  {
+  time = angle_Mat.Get(i,j);
+  if(j<Gen_no){ 
+     SetLineFeed(0);
+     fprintf(0,'%f,',time);
+  }
+  else
+  {
+    SetLineFeed(1);
+    fprintf(0,'%f',time);
+  }
+  !fprintf(0,','); 
+  }
+}                          
+fclose(0);
