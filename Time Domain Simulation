@@ -68,7 +68,7 @@ angle_Mat.Init(N,Gen_no,0);
   printf('Speed is %f',speed);
   
   GetResData(angle,All_Calculations,i,i2); 
-  printf('Speed is %f',angle);
+  printf('Angle is %f',angle);
   
                            
   !Saving Speed in a matrix name speed_Mat 
@@ -167,4 +167,4 @@ for(i=1;i<=N;i+=1)
   !fprintf(0,','); 
   }
 }                          
-fclose(0);
+fclose(0); 
