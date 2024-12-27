@@ -1,0 +1,125 @@
+!1. This program loads data from excel file (.xlsx) file
+!2. User have to change no. of Load and no. of Bus  in variable Busno and Loadno variables
+!3. excel Format should be 'Load_name' 'hour1_data' 'hour2_data' .... 'hour24data'
+
+set Buses,Loads;
+object B,L,PF;
+
+int i,j,k,iRet,Val,Busno,Loadno;     
+double temp;
+string SS; 
+
+Busno = 13;  !Enter Number of Buses
+Loadno = 10;  !Enter  Number of Loads 
+
+Load.Init(Loadno,24,0);  !Creating a Matrix with 10 rows and 24 Column
+Voltage.Init(24,Busno,0);     !Creating a Matrix with 10 rows and 24 column 
+
+ClearOutput(); 
+
+!Importing Load Data from LoadData.xlsx file saved in Desktop
+xlStart();
+xlOpenWorkbook('C:\Users\Ashmita\Desktop\LoadData.xlsx');  
+printf('File opened');
+
+!i control column
+for(i=1;i<=24;i+=1){
+   
+  printf('Reading Data for Hour %d',i+1); 
+   printf('------------------------------------------'); 
+  for(j=1;j<=Loadno;j+=1){
+ 
+    xlGetValue(i+1,j,temp);
+    xlGetValue(1,j,SS);
+    printf('Load of %s at Hour %d is \t %f MW',SS,i+1,temp);
+    
+    Load.Set(j,i,temp); 
+  }
+  printf('------------------------------------------'); 
+}  
+xlCloseWorkbook();
+xlTerminate(); 
+!Load profile has been Loaded to a Matrix, Closing File ...   
+printf('File Closed');
+printf('---------------------------------'); 
+
+
+!Creating Set of Buses and Load
+printf('Creating Set of Buses and Load');
+Buses = AllRelevant('ElmTerm');
+Loads = AllRelevant('ElmLod');  
+
+!Sorting Buses and Loads in accending order  
+Buses.SortToName(0); 
+Loads.SortToName(0);
+
+!Creating Object of Loads and Buses
+L = Loads.First();
+B = Buses.First();     
+
+!Main Calculation Stated
+for(i=1;i<=24;i+=1){  
+printf('Loads for Hour = %d :',i);
+  for(j=1;j<=Loadno;j+=1){
+    temp = Load.Get(j,i);
+    L:plini = temp;
+    printf('Load %d is %f',j,temp);
+      if(j<Loadno){
+      L = Loads.Next();  !only 10 Loads are present so to avoid 11 load error
+      }
+  }
+    printf('All data for Hour %d is loaded',i);  
+    printf('---------------------------------');
+    printf('Now Performing Load Flow for Hour %d',i); 
+    
+    PF=GetCaseObject('ComLdf');
+    PF.Execute();
+     
+   for(k=1;k<=Busno;k+=1){
+   temp = B:m:u;
+   printf('Voltage of Bus %d is %f',k,temp); !Print the Voltage of Bus Bar
+      
+   !saving Bus Voltage to a Vector
+   Voltage.Set(i,k,temp);
+      if(k<Busno){
+      B = Buses.Next();
+      }  
+    }  
+    B = Buses.First();
+    L = Loads.First();    
+ }  
+ 
+ !Exporting data to csv File
+
+fopen('C:\Users\Ashmita\Desktop\Voltage_Profile_Assignment_1.csv','w',0);
+SetLineFeed(0);
+fprintf(0,'Bus Number,');
+for(i=1;i<=24;i+=1){
+  if(i<24){
+  fprintf(0,'Hour %d,',i);
+  }
+else{
+    SetLineFeed(1); 
+     fprintf(0,'Hour %d Voltage',i);
+  }
+}
+
+for(i=1;i<=Busno;i+=1){
+  SetLineFeed(0);
+  fprintf(0,'%d,',i);
+  for(j=1;j<=24;j+=1){
+    if(j<24){
+      temp = Voltage.Get(j,i);
+      fprintf(0,'%f,',temp);
+      }
+     else{
+      SetLineFeed(1); 
+       temp = Voltage.Get(j,i);
+       fprintf(0,'%f',temp);
+     }
+  }
+}
+fprintf(0,'  ');
+fprintf(0,'© Ashish');
+fprintf(0,'bhattaashish907@gmail.com');
+fclose(0);
